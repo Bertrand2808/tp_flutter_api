@@ -35,7 +35,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/logo.png',
+              height: 40,
+            ),
+            const SizedBox(width: 10),
+            Text(widget.title),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
