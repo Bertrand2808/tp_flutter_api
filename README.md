@@ -168,7 +168,7 @@ Vous trouverez une vidéo démonstration du projet dans `assets/Démonstration.m
   }
   ```
   ou
-  
+
   ```json
    {
       "email": "admin@example.com",

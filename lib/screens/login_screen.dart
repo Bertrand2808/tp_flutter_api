@@ -1,160 +1,175 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_button.dart';
 import 'profile_screen.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.title});
   final String title;
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>(); // Clé pour le formulaire
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final AuthService _authService = AuthService(); // Service d'authentification'
-  // Tableau associatif des utilisateurs
-  final Map<String, Map<String, dynamic>> _users = {
-    'user@example.com': {
-      'password': 'userpass',
-      'firstName': 'Jane',
-      'lastName': 'Doe',
-      'role': 'User',
-    },
-    'admin@example.com': {
-      'password': 'adminpass',
-      'firstName': 'Admin',
-      'lastName': 'User',
-      'role': 'Admin',
-    },
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/logo.png',
-              height: 40,
-            ),
-            const SizedBox(width: 10),
-            Text(widget.title),
-          ],
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch, // Aligne les éléments sur toute la largeur
-              children: <Widget>[
-                // Champ de saisie de l'email
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    icon: Icon(Icons.mail),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Format de l\'email incorrect. Essayez "exemple@domaine.com".';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                // Champ de saisie du mot de passe
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mot de passe',
-                    border: OutlineInputBorder(),
-                    icon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre mot de passe';
-                    }
-                    if (value.length < 6) {
-                      return 'Le mot de passe doit contenir au moins 6 caractères';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24.0),
-                // Bouton ou indicateur de chargement
-                _isLoading
-                    ? CircularProgressIndicator()
-                    : ElevatedButton(
-                  onPressed: _login,
-                  child: const Text('Se connecter'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
+  final AuthService _authService = AuthService();
   bool _isLoading = false;
+
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
-      String email = _emailController.text;
-      String password = _passwordController.text;
-      final user = await _authService.login(email, password);
+
+      await Future.delayed(const Duration(seconds: 3)); // Simule une attente
+
+      final data = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
       });
 
-      if (user != null) {
-        // Connexion réussie avec informations supplémentaires
+      if (data != null && data['token'] != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ProfileScreen(
-                  email: email,
-                  firstName: _users[email]!['firstName'],
-                  lastName: _users[email]!['lastName'],
-                  role: _users[email]!['role'],
-                ),
+            builder: (context) => ProfileScreen(
+              email: data['user']['email'] ?? 'Non renseigné',
+              firstName: data['user']['first_name'] ?? 'Non renseigné',
+              lastName: data['user']['last_name'] ?? 'Non renseigné',
+              role: data['user']['role'] ?? 'Non renseigné',
+            ),
           ),
         );
       } else {
-        // Connexion échouée
-        showDialog(
-          context: context,
-          builder: (context) =>
-              AlertDialog(
-                title: Text('Erreur'),
-                content: Text('Email ou mot de passe incorrect'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('OK'),
-                  ),
-                ],
-              ),
-        );
+        _showErrorDialog('Connexion échouée. Vérifiez vos identifiants.');
       }
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Erreur'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 70,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logo.png',
+                height: 100,
+              ),
+              const SizedBox(height: 20),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer votre email';
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                          return 'Format de l\'email incorrect.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Mot de passe',
+                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer votre mot de passe';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _isLoading
+                        ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Connexion en cours, veuillez patienter...'),
+                      ],
+                    )
+                        : CustomButton(
+                      label: 'Se connecter',
+                      onPressed: _login,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
