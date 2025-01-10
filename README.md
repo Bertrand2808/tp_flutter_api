@@ -6,6 +6,11 @@ Cette application est un projet Flutter qui permet aux utilisateurs de se connec
 L'API backend est développée en Python avec la bibliothèque Flask et une base de données PostgreSQL pour la gestion des utilisateurs.
 
 ---
+## Démonstration
+
+Vous trouverez une vidéo démonstration du projet dans `assets/Démonstration.mkv`
+
+![alt text](assets/files.png)
 
 ## **Prérequis**
 ### **Backend**
@@ -55,6 +60,9 @@ L'API backend est développée en Python avec la bibliothèque Flask et une base
    ```sql
    CREATE DATABASE auth_db;
    ```
+
+   Puis taper `\c auth_db` pour rentrer dans la base de données PostgreSQL.
+
 3. Connectez-vous à la base de données et créez la table `users` :
    ```sql
    CREATE TABLE users (
@@ -65,6 +73,11 @@ L'API backend est développée en Python avec la bibliothèque Flask et une base
        last_name VARCHAR(100) NOT NULL,
        role VARCHAR(50) NOT NULL
    );
+   ```
+
+   Vous devriez voir quelque chose comme ceci :
+   ```bash
+   CREATE TABLE
    ```
 
 ---
@@ -154,6 +167,14 @@ L'API backend est développée en Python avec la bibliothèque Flask et une base
     "password": "userpass"
   }
   ```
+  ou
+  
+  ```json
+   {
+      "email": "admin@example.com",
+      "password": "adminpass"
+   }
+   ```
 - **Exemple de réponse :**
   ```json
   {
@@ -166,6 +187,7 @@ L'API backend est développée en Python avec la bibliothèque Flask et une base
     }
   }
   ```
+
 
 ### **2. `/init_users`**
 - **Méthode :** `POST`
