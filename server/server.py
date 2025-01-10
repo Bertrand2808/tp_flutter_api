@@ -2,6 +2,35 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import bcrypt
+import jwt
+from datetime import datetime, timedelta, timezone
+from marshmallow import Schema, fields, ValidationError
+
+SECRET_KEY = "your_secret_key" # Clé secrète pour les sessions
+class LoginSchema(Schema):
+  email = fields.Email(required=True)
+  password = fields.Str(required=True)
+def generate_token(user):
+  # Génération d'un token JWT avec les informations de l'utilisateur
+  token_payload = {
+    'id': user.id,
+    'email': user.email,
+    'first_name': user.first_name,
+    'last_name': user.last_name,
+    'expires_in': (datetime.now(tz=timezone.utc) + timedelta(hours=1)).isoformat()
+  }
+  return jwt.encode(token_payload, SECRET_KEY, algorithm='HS256')
+
+def verify_token(token):
+  # Vérification du token JWT
+  try:
+    decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+    return decoded_token
+  except jwt.ExpiredSignatureError:
+    return None
+  except jwt.InvalidTokenError:
+    return None
+
 
 # Configuration de Flask et de SQLAlchemy
 app = Flask(__name__) # Création de l'application Flask
@@ -58,18 +87,32 @@ def init_users():
 # Route pour authentifier un utilisateur
 @app.route('/login', methods=['POST'])
 def login():
-  data = request.get_json()
+  schema = LoginSchema()
+  # Vérification des données de la requête JSON
+  try:
+    data = schema.load(request.get_json())
+  except ValidationError as e:
+    return jsonify({"message": f"Erreur : {str(e)}"}), 400
+
+  # Renvoie en cas d'absence de données
   if not data:
     return jsonify({"message": "Erreur : Corps de la requête JSON manquant"}), 400
+
+  # Vérification des identifiants de l'utilisateur
   email = data.get('email')
   password = data.get('password')
   user = User.query.filter_by(email=email).first()
+
   if user and bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+    token = generate_token(user)
     return jsonify({
+          "token": token,
+          "user": {
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "role": user.role
+          }
         }), 200
   else:
     return jsonify({"message": "Erreur : Identifiants incorrects."}), 401
@@ -90,8 +133,6 @@ def get_user_info():
     }), 200
   else:
     return jsonify({"message": "Erreur : Utilisateur non trouvé."}), 404
-
-
 
 if __name__ == '__main__':
   app.run(debug=True)
